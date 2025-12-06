@@ -96,22 +96,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addSession = useCallback((note?: string) => {
     if (!user) return;
     
-    // Only save FOCUS sessions for analytics usually, but PRD implies tracking "past sessions"
-    // We'll track all completed cycles.
-    const duration = timerType === TimerType.FOCUS 
+    // Calculate focus and break minutes based on timer type
+    const focusMinutes = timerType === TimerType.FOCUS 
       ? settings.focusDuration 
+      : 0;
+    
+    const breakMinutes = timerType === TimerType.FOCUS 
+      ? 0 
       : timerType === TimerType.SHORT_BREAK 
       ? settings.shortBreakDuration 
       : settings.longBreakDuration;
 
+    const now = new Date();
+    const sessionDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+
     const newSession: Session = {
       id: crypto.randomUUID(),
       userId: user.id,
-      date: new Date().toISOString(),
-      startTime: startTime ? new Date(startTime).toISOString() : new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      durationMinutes: duration,
-      type: timerType === 'FOCUS' ? 'FOCUS' : timerType === 'SHORT_BREAK' ? 'SHORT_BREAK' : 'LONG_BREAK',
+      date: sessionDate,
+      startTime: startTime ? new Date(startTime).toISOString() : now.toISOString(),
+      endTime: now.toISOString(),
+      focusMinutes,
+      breakMinutes,
       note
     };
 

@@ -17,8 +17,9 @@ export const generateFocusInsight = async (sessions: Session[]): Promise<string>
   // Filter for recent sessions to keep payload small and relevant
   const recentSessions = sessions.slice(0, 20).map(s => ({
     date: new Date(s.date).toLocaleDateString(),
-    duration: s.durationMinutes,
-    type: s.type,
+    focusMinutes: s.focusMinutes,
+    breakMinutes: s.breakMinutes,
+    totalMinutes: s.focusMinutes + s.breakMinutes,
     note: s.note
   }));
 
@@ -37,7 +38,7 @@ export const generateFocusInsight = async (sessions: Session[]): Promise<string>
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
-    return response.text.trim();
+    return response.text?.trim() || "Stay present. Your focus is building.";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Stay present. Your focus is building.";
