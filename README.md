@@ -55,6 +55,10 @@ The application uses two main tables:
 
 See `lib/db/schema.sql` for the complete schema with RLS policies.
 
+## Contributing
+
+Contributions are welcome! Please open issues or submit pull requests for bug fixes and enhancements.
+
 ## License
 
-MIT
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
