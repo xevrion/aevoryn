@@ -55,24 +55,6 @@ The application uses two main tables:
 
 See `lib/db/schema.sql` for the complete schema with RLS policies.
 
-## Project Structure
-
-```
-app/
-  ├── app/          # Main timer page
-  ├── history/      # Session history
-  ├── settings/     # User settings
-  ├── login/        # Authentication
-  └── page.tsx      # Landing page
-
-lib/
-  ├── supabase/     # Supabase client utilities
-  ├── db/           # Database queries and schema
-  └── store/        # Client-side state management
-
-components/         # Reusable UI components
-```
-
 ## License
 
 MIT
