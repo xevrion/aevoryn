@@ -55,7 +55,6 @@ The application uses two main tables:
 
 See `lib/db/schema.sql` for the complete schema with RLS policies.
 
-
 ## License
 
 MIT
