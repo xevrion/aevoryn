@@ -19,7 +19,7 @@ A radically minimal Pomodoro experience optimized for quiet productivity, zero d
 - **Tailwind CSS** - Utility-first styling
 - **Zustand** - Lightweight state management
 
-## Setup
+## Setup:
 
 1. **Install dependencies:**
    ```bash
