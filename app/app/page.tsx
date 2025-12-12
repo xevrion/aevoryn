@@ -39,7 +39,28 @@ export default function TimerPage() {
       }
       setUser(user);
 
-      // Load settings
+      // Load settings from localStorage first (after mount)
+      let userSettings: UserSettings = DEFAULT_SETTINGS;
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(`aev_settings_${user.id}`) || localStorage.getItem('aev_settings');
+        if (stored) {
+          try {
+            userSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+            setSettings(userSettings);
+            // Reset timer with correct duration
+            const duration = timerType === TimerType.FOCUS 
+              ? userSettings.focusDuration 
+              : timerType === TimerType.SHORT_BREAK 
+              ? userSettings.shortBreakDuration 
+              : userSettings.longBreakDuration;
+            setTimeLeft(duration * 60);
+          } catch {
+            // Invalid JSON, continue to fetch from Supabase
+          }
+        }
+      }
+
+      // Fetch from Supabase in the background to sync
       const { data } = await supabase
         .from('user_settings')
         .select('*')
@@ -47,7 +68,7 @@ export default function TimerPage() {
         .single();
 
       if (data) {
-        const userSettings: UserSettings = {
+        const supabaseSettings: UserSettings = {
           focusDuration: data.focus_duration,
           shortBreakDuration: data.short_break_duration,
           longBreakDuration: data.long_break_duration,
@@ -55,14 +76,25 @@ export default function TimerPage() {
           backgroundType: data.background_type,
           backgroundValue: data.background_value,
         };
-        setSettings(userSettings);
-        // Reset timer with correct duration
-        const duration = timerType === TimerType.FOCUS 
-          ? userSettings.focusDuration 
-          : timerType === TimerType.SHORT_BREAK 
-          ? userSettings.shortBreakDuration 
-          : userSettings.longBreakDuration;
-        setTimeLeft(duration * 60);
+        
+        // Only update if different
+        const currentStr = JSON.stringify(userSettings);
+        const supabaseStr = JSON.stringify(supabaseSettings);
+        if (currentStr !== supabaseStr) {
+          setSettings(supabaseSettings);
+          // Save to localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(`aev_settings_${user.id}`, supabaseStr);
+            localStorage.setItem('aev_settings', supabaseStr);
+          }
+          // Reset timer with correct duration
+          const duration = timerType === TimerType.FOCUS 
+            ? supabaseSettings.focusDuration 
+            : timerType === TimerType.SHORT_BREAK 
+            ? supabaseSettings.shortBreakDuration 
+            : supabaseSettings.longBreakDuration;
+          setTimeLeft(duration * 60);
+        }
       }
     };
     loadUser();

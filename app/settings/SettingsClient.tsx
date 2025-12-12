@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SOLID_COLORS, GRADIENTS } from '@/constants';
@@ -15,7 +15,25 @@ interface SettingsClientProps {
 }
 
 export function SettingsClient({ initialSettings, userId }: SettingsClientProps) {
+  const [mounted, setMounted] = useState(false);
+  // Start with initialSettings to avoid hydration mismatch
   const [settings, setSettings] = useState<UserSettings>(initialSettings);
+
+  // Load from localStorage after mount
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`aev_settings_${userId}`) || localStorage.getItem('aev_settings');
+      if (stored) {
+        try {
+          const localSettings = { ...initialSettings, ...JSON.parse(stored) };
+          setSettings(localSettings);
+        } catch {
+          // Invalid JSON, keep initialSettings
+        }
+      }
+    }
+  }, [userId, initialSettings]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -23,6 +41,22 @@ export function SettingsClient({ initialSettings, userId }: SettingsClientProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
+
+  // Sync with initialSettings if they differ (means Supabase has newer data)
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const currentStr = JSON.stringify(settings);
+    const initialStr = JSON.stringify(initialSettings);
+    if (currentStr !== initialStr) {
+      // Supabase has different settings, update local state
+      setSettings(initialSettings);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`aev_settings_${userId}`, initialStr);
+        localStorage.setItem('aev_settings', initialStr);
+      }
+    }
+  }, [initialSettings, userId, mounted, settings]);
 
   // Update local state only (don't save to DB yet)
   const updateLocalSettings = (newSettings: Partial<UserSettings>) => {
@@ -43,6 +77,13 @@ export function SettingsClient({ initialSettings, userId }: SettingsClientProps)
         console.error('Error saving settings:', result.error);
         alert('Failed to save settings. Please try again.');
       } else {
+        // Save to localStorage immediately for instant access
+        if (typeof window !== 'undefined') {
+          const settingsStr = JSON.stringify(settings);
+          localStorage.setItem(`aev_settings_${userId}`, settingsStr);
+          localStorage.setItem('aev_settings', settingsStr);
+        }
+        
         setSaved(true);
         // Dispatch custom event to notify Layout to reload settings
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
@@ -156,12 +197,24 @@ export function SettingsClient({ initialSettings, userId }: SettingsClientProps)
       console.log('Public URL:', publicUrl);
 
       setUploadedImageUrl(publicUrl);
+      const updatedSettings = { 
+        ...settings,
+        backgroundType: 'IMAGE' as const, 
+        backgroundValue: publicUrl 
+      };
       updateLocalSettings({ 
         backgroundType: 'IMAGE', 
         backgroundValue: publicUrl 
       });
       
-      // Don't auto-save, let user click Save Settings button
+      // Auto-save image selection to localStorage for instant preview
+      if (typeof window !== 'undefined') {
+        const settingsStr = JSON.stringify(updatedSettings);
+        localStorage.setItem(`aev_settings_${userId}`, settingsStr);
+        localStorage.setItem('aev_settings', settingsStr);
+      }
+      
+      // Don't auto-save to Supabase, let user click Save Settings button
       // Success message is shown via the uploadedImageUrl state
     } catch (error: any) {
       console.error('Error uploading image:', error);
